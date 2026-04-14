@@ -3,17 +3,18 @@ import { z } from "zod";
 
 import { getSessionUser } from "@/lib/auth";
 import { generatePlanning } from "@/lib/ai";
+import { errorResponse } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
 const planningSchema = z.object({
-  ageGroup: z.string(),
-  duration: z.string(),
-  location: z.string(),
-  energyLevel: z.string(),
-  materials: z.string(),
-  jewishThemeType: z.string(),
-  topic: z.string(),
-  activityType: z.string()
+  ageGroup: z.string().trim().min(1).max(80),
+  duration: z.string().trim().min(1).max(80),
+  location: z.string().trim().min(1).max(80),
+  energyLevel: z.string().trim().min(1).max(40),
+  materials: z.string().trim().min(1).max(500),
+  jewishThemeType: z.string().trim().min(1).max(80),
+  topic: z.string().trim().min(1).max(120),
+  activityType: z.string().trim().min(1).max(80)
 });
 
 export async function POST(request: Request) {
@@ -34,6 +35,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ id: saved.id, output });
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+    return errorResponse(error);
   }
 }

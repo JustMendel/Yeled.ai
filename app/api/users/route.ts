@@ -3,10 +3,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { assertManager, getSessionUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
 const inviteSchema = z.object({
-  name: z.string(),
+  name: z.string().trim().min(1).max(120),
   email: z.string().email(),
   role: z.nativeEnum(UserRole)
 });
@@ -30,6 +31,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+    return errorResponse(error);
   }
 }

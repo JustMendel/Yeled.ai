@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { assertManager, getSessionUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
 const settingsSchema = z.object({
-  tone: z.string(),
-  terminology: z.string(),
-  jewishOrientation: z.string(),
-  languageStyle: z.string(),
-  messTolerance: z.string(),
-  outputDetail: z.string()
+  tone: z.string().trim().min(1).max(80),
+  terminology: z.string().trim().min(1).max(80),
+  jewishOrientation: z.string().trim().min(1).max(80),
+  languageStyle: z.string().trim().min(1).max(80),
+  messTolerance: z.string().trim().min(1).max(80),
+  outputDetail: z.string().trim().min(1).max(80)
 });
 
 export async function GET() {
@@ -37,6 +38,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(settings);
   } catch (error) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+    return errorResponse(error);
   }
 }
