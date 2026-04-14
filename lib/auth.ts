@@ -12,12 +12,18 @@ export type SessionUser = {
 
 export async function getSessionUser(): Promise<SessionUser> {
   const headerStore = await headers();
-  const email = headerStore.get("x-demo-user") ?? "manager@demo.local";
+  const requestedEmail = headerStore.get("x-demo-user");
+  const email = requestedEmail?.trim().toLowerCase() || "manager@demo.local";
+  const allowedDemoUsers = new Set(["manager@demo.local", "staff@demo.local"]);
+
+  if (!allowedDemoUsers.has(email)) {
+    throw new Error("Unauthorized demo user");
+  }
 
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    throw new Error("User not found for demo session");
+    throw new Error("Unauthorized");
   }
 
   return {
@@ -30,6 +36,6 @@ export async function getSessionUser(): Promise<SessionUser> {
 
 export function assertManager(role: UserRole) {
   if (role !== UserRole.manager) {
-    throw new Error("Manager access required");
+    throw new Error("Forbidden");
   }
 }
