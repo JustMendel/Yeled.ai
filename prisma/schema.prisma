@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  manager
+  staff
+}
+
+model Nursery {
+  id          String               @id @default(cuid())
+  name        String
+  settings    NurserySettings?
+  users       User[]
+  planning    PlanningGeneration[]
+  insights    InsightGeneration[]
+  createdAt   DateTime             @default(now())
+}
+
+model NurserySettings {
+  id                String  @id @default(cuid())
+  nurseryId         String  @unique
+  tone              String  @default("supportive")
+  terminology       String  @default("Shabbos")
+  jewishOrientation String  @default("general")
+  languageStyle     String  @default("warm")
+  messTolerance     String  @default("medium")
+  outputDetail      String  @default("standard")
+
+  nursery Nursery @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id         String              @id @default(cuid())
+  name       String
+  email      String              @unique
+  role       UserRole
+  nurseryId  String
+  nursery    Nursery             @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  planning   PlanningGeneration[]
+  insights   InsightGeneration[]
+  createdAt  DateTime            @default(now())
+}
+
+model PlanningGeneration {
+  id          String   @id @default(cuid())
+  nurseryId   String
+  userId      String
+  inputJson   String
+  outputText  String
+  createdAt   DateTime @default(now())
+
+  nursery Nursery @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model InsightGeneration {
+  id          String   @id @default(cuid())
+  nurseryId   String
+  userId      String
+  observation String
+  outputText  String
+  createdAt   DateTime @default(now())
+
+  nursery Nursery @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
