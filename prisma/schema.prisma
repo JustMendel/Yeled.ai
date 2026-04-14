@@ -12,6 +12,16 @@ enum UserRole {
   staff
 }
 
+enum EventType {
+  planning_generated
+  planning_section_regenerated
+  insight_generated
+  settings_updated
+  user_invited
+  dashboard_viewed
+  history_viewed
+}
+
 model Nursery {
   id          String               @id @default(cuid())
   name        String
@@ -19,6 +29,7 @@ model Nursery {
   users       User[]
   planning    PlanningGeneration[]
   insights    InsightGeneration[]
+  events      Event[]
   createdAt   DateTime             @default(now())
 }
 
@@ -44,6 +55,7 @@ model User {
   nursery    Nursery             @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
   planning   PlanningGeneration[]
   insights   InsightGeneration[]
+  events     Event[]
   createdAt  DateTime            @default(now())
 }
 
@@ -57,6 +69,8 @@ model PlanningGeneration {
 
   nursery Nursery @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([nurseryId, createdAt])
 }
 
 model InsightGeneration {
@@ -69,4 +83,21 @@ model InsightGeneration {
 
   nursery Nursery @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([nurseryId, createdAt])
+}
+
+model Event {
+  id           String    @id @default(cuid())
+  nurseryId    String
+  userId       String?
+  type         EventType
+  metadataJson String?
+  createdAt    DateTime  @default(now())
+
+  nursery Nursery @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([nurseryId, createdAt])
+  @@index([nurseryId, type, createdAt])
 }

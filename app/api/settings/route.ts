@@ -1,7 +1,9 @@
+import { EventType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { assertManager, getSessionUser } from "@/lib/auth";
+import { trackEvent } from "@/lib/events";
 import { prisma } from "@/lib/prisma";
 
 const settingsSchema = z.object({
@@ -33,6 +35,16 @@ export async function PUT(request: Request) {
       where: { nurseryId: sessionUser.nurseryId },
       update: data,
       create: { nurseryId: sessionUser.nurseryId, ...data }
+    });
+
+    await trackEvent({
+      nurseryId: sessionUser.nurseryId,
+      userId: sessionUser.id,
+      type: EventType.settings_updated,
+      metadata: {
+        tone: data.tone,
+        detail: data.outputDetail
+      }
     });
 
     return NextResponse.json(settings);

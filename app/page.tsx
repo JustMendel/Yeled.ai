@@ -6,6 +6,10 @@ type Dashboard = {
   planningCount: number;
   insightCount: number;
   teamSize: number;
+  totalGenerations: number;
+  weeklyGenerations: number;
+  avgGenerationsPerStaff: number;
+  parentInsightShare: number;
 };
 
 type HistoryData = {
@@ -31,6 +35,8 @@ const defaultSettings: Settings = {
   outputDetail: "standard"
 };
 
+const planningSections = ["title", "summary", "materials", "setup", "steps", "jewish message", "extensions", "cleanup"];
+
 export default function HomePage() {
   const [userEmail, setUserEmail] = useState("manager@demo.local");
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
@@ -38,6 +44,9 @@ export default function HomePage() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [planningOutput, setPlanningOutput] = useState("");
   const [insightOutput, setInsightOutput] = useState("");
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyModule, setHistoryModule] = useState("all");
+  const [regenerateSection, setRegenerateSection] = useState("");
 
   const [planningForm, setPlanningForm] = useState({
     ageGroup: "3-4",
@@ -76,9 +85,13 @@ export default function HomePage() {
   }
 
   async function refresh() {
+    const historyParams = new URLSearchParams();
+    if (historyQuery) historyParams.set("q", historyQuery);
+    if (historyModule !== "all") historyParams.set("module", historyModule);
+
     const [dash, hist, loadedSettings] = await Promise.all([
       api<Dashboard>("/api/dashboard"),
-      api<HistoryData>("/api/history"),
+      api<HistoryData>(`/api/history?${historyParams.toString()}`),
       api<Settings>("/api/settings")
     ]);
     setDashboard(dash);
@@ -88,7 +101,7 @@ export default function HomePage() {
 
   useEffect(() => {
     refresh().catch((error) => console.error(error));
-  }, [userEmail]);
+  }, [userEmail, historyModule]);
 
   async function submitPlanning(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,6 +120,22 @@ export default function HomePage() {
       body: JSON.stringify(insightForm)
     });
     setInsightOutput(data.output);
+    refresh().catch((error) => console.error(error));
+  }
+
+  async function regeneratePlanningSectionOutput() {
+    if (!regenerateSection || !planningOutput) return;
+
+    const data = await api<{ output: string }>("/api/planning", {
+      method: "POST",
+      body: JSON.stringify({
+        ...planningForm,
+        regenerateSection,
+        previousOutput: planningOutput
+      })
+    });
+
+    setPlanningOutput(`${planningOutput}\n\n[Regenerated ${regenerateSection}]\n${data.output}`);
     refresh().catch((error) => console.error(error));
   }
 
@@ -137,6 +166,10 @@ export default function HomePage() {
           <p>Planning outputs: {dashboard?.planningCount ?? 0}</p>
           <p>Parent insights: {dashboard?.insightCount ?? 0}</p>
           <p>Team size: {dashboard?.teamSize ?? 0}</p>
+          <p>Total generations: {dashboard?.totalGenerations ?? 0}</p>
+          <p>Weekly generations (7d): {dashboard?.weeklyGenerations ?? 0}</p>
+          <p>Avg generations / staff (7d): {dashboard?.avgGenerationsPerStaff ?? 0}</p>
+          <p>Parent insight share: {dashboard?.parentInsightShare ?? 0}%</p>
         </div>
 
         <form className="card" onSubmit={saveSettings}>
@@ -167,6 +200,20 @@ export default function HomePage() {
             </div>
           ))}
           <button type="submit">Generate planning</button>
+          <div style={{ marginTop: 10 }}>
+            <label className="small">Regenerate section only</label>
+            <select value={regenerateSection} onChange={(e) => setRegenerateSection(e.target.value)}>
+              <option value="">Select section</option>
+              {planningSections.map((section) => (
+                <option key={section} value={section}>
+                  {section}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={regeneratePlanningSectionOutput} disabled={!planningOutput || !regenerateSection}>
+              Regenerate section
+            </button>
+          </div>
           {planningOutput && <pre>{planningOutput}</pre>}
         </form>
 
@@ -208,6 +255,17 @@ export default function HomePage() {
 
       <section className="card">
         <h2>Generation history</h2>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <input value={historyQuery} placeholder="Search outputs..." onChange={(e) => setHistoryQuery(e.target.value)} />
+          <select value={historyModule} onChange={(e) => setHistoryModule(e.target.value)}>
+            <option value="all">All modules</option>
+            <option value="planning">Planning only</option>
+            <option value="insights">Insights only</option>
+          </select>
+          <button type="button" onClick={() => refresh().catch((error) => console.error(error))}>
+            Search
+          </button>
+        </div>
         <div className="grid grid-2">
           <div>
             <h4>Planning</h4>

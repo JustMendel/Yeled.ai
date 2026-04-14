@@ -1,8 +1,9 @@
-import { UserRole } from "@prisma/client";
+import { EventType, UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { assertManager, getSessionUser } from "@/lib/auth";
+import { trackEvent } from "@/lib/events";
 import { prisma } from "@/lib/prisma";
 
 const inviteSchema = z.object({
@@ -26,6 +27,16 @@ export async function POST(request: Request) {
     const data = inviteSchema.parse(await request.json());
     const user = await prisma.user.create({
       data: { ...data, nurseryId: sessionUser.nurseryId }
+    });
+
+    await trackEvent({
+      nurseryId: sessionUser.nurseryId,
+      userId: sessionUser.id,
+      type: EventType.user_invited,
+      metadata: {
+        invitedRole: data.role,
+        invitedEmail: data.email
+      }
     });
 
     return NextResponse.json(user, { status: 201 });
