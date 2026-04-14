@@ -50,3 +50,44 @@ The UI includes a selector that toggles between users by setting the `x-demo-use
 ## Roadmap
 
 See the full implementation roadmap in `ROADMAP.md`.
+
+## Deploying to Cloudflare Workers
+
+This repo is not deployable to Workers yet with only:
+
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+
+because the project currently has:
+
+- no `wrangler.toml` (Worker name/account/main/compatibility settings),
+- no Cloudflare Next.js adapter package/scripts,
+- local Prisma + SQLite setup (which does not run on Workers runtime).
+
+### Required settings and changes
+
+1. **Add a Workers config file (`wrangler.toml`)**
+   - `name = "yeled"`
+   - `main = ".open-next/worker.js"` (or the adapter output path you use)
+   - `compatibility_date = "YYYY-MM-DD"`
+   - set routes/custom domain only after first successful deploy
+
+2. **Use the Next.js Cloudflare adapter**
+   - install adapter tooling (for example `@opennextjs/cloudflare` + `wrangler`)
+   - add scripts to build the Worker artifact before deploy
+   - update CI build command to that adapter build script (not plain `next build`)
+
+3. **Move database away from local SQLite**
+   - replace SQLite with Cloudflare-compatible storage (for example D1 via Prisma adapter/driver, or an external DB like Neon/Supabase)
+   - run migrations against that target DB
+
+4. **Set required env vars/secrets in Cloudflare**
+   - `OPENAI_API_KEY`
+   - any runtime DB connection/binding values
+   - if using D1, add a `d1_databases` binding in `wrangler.toml`
+
+5. **Cloudflare dashboard build settings**
+   - **Root directory:** `/` (current value is fine)
+   - **Build command:** adapter build command (for example `npm run cf:build`)
+   - **Deploy command:** `npx wrangler deploy`
+   - **Production branch:** `main` (current value is fine)
