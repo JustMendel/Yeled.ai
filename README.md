@@ -46,3 +46,7 @@ A Next.js MVP implementation of the PRD in `project.md`.
 - `staff@demo.local`
 
 The UI includes a selector that toggles between users by setting the `x-demo-user` header.
+
+## Roadmap
+
+See the full implementation roadmap in `ROADMAP.md`.
